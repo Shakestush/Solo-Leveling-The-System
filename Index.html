@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE SYSTEM — Hunter Dashboard</title>
+<meta name="description" content="A gamified personal progression and habit dashboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ============ BOOT SEQUENCE ============ -->
+<div id="boot">
+  <div class="boot-lines" id="bootLines"></div>
+</div>
+
+<!-- ============ LEVEL UP FLASH ============ -->
+<div id="levelup-flash">
+  <div class="levelup-card">
+    <div class="tag">LEVEL UP</div>
+    <div class="big" id="levelupLevel">2</div>
+    <div class="sub" id="levelupSub">+3 stat points awarded</div>
+    <button class="boot-btn" id="levelupClose">CONTINUE</button>
+  </div>
+</div>
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="panel modal">
+    <h3>SYSTEM SETTINGS</h3>
+    <div class="modal-row">
+      <button class="full" id="exportBtn">↓ Export save file</button>
+    </div>
+    <div class="modal-row">
+      <button class="full" id="importBtn">↑ Import save file</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+    <div class="modal-row">
+      <button class="full danger" id="resetBtn">⟲ Reset system (delete all data)</button>
+    </div>
+    <p style="font-size:11px;color:var(--ink-faint);line-height:1.6;margin-top:10px;">
+      Your data lives only in this browser. Export a save file before switching devices or clearing browser data.
+    </p>
+    <button class="modal-close" id="settingsClose">CLOSE</button>
+  </div>
+</div>
+
+<div id="systemStatus" class="system-status" aria-live="polite">
+  <span>● SYSTEM ONLINE</span><span id="liveClock"></span><span id="liveDate"></span>
+</div>
+<div class="feature-overlay" id="featureOverlay" hidden>
+  <div class="feature-modal panel">
+    <div class="panel-title">SYSTEM COMMANDS</div>
+    <div class="command-grid">
+      <div><kbd>/</kbd><span>Focus side-quest input</span></div>
+      <div><kbd>?</kbd><span>Open command help</span></div>
+      <div><kbd>Esc</kbd><span>Close overlays</span></div>
+      <div><kbd>F</kbd><span>Toggle focus mode</span></div>
+    </div>
+    <button class="modal-close" id="featureClose">CLOSE</button>
+  </div>
+</div>
+
+<!-- ============ ANALYTICS DASHBOARD ============ -->
+<div class="analytics-shell panel" id="analyticsShell">
+  <div class="analytics-head">
+    <div>
+      <div class="panel-title">COMMAND CENTER</div>
+      <div class="analytics-subtitle">Real-time progression, weekly performance and achievements</div>
+    </div>
+    <div class="dashboard-actions">
+      <button class="dashboard-tab active" data-view="overview">OVERVIEW</button>
+      <button class="dashboard-tab" data-view="weekly">WEEKLY</button>
+      <button class="dashboard-tab" data-view="achievements">ACHIEVEMENTS</button>
+      <button class="dashboard-tab" data-view="profile">PROFILE</button>
+    </div>
+  </div>
+
+  <section class="dashboard-view active" id="view-overview">
+    <div class="metric-grid">
+      <div class="metric-card"><span>LEVEL</span><strong id="metricLevel">1</strong><small id="metricRank">E-RANK</small></div>
+      <div class="metric-card"><span>TOTAL XP LOGGED</span><strong id="metricXp">0</strong><small>RECORDED ACTIVITY</small></div>
+      <div class="metric-card"><span>QUESTS CLEARED</span><strong id="metricQuests">0</strong><small>DAILY + SIDE</small></div>
+      <div class="metric-card"><span>DUNGEONS</span><strong id="metricDungeons">0</strong><small id="metricDungeonRate">0% CLEAR RATE</small></div>
+      <div class="metric-card"><span>STREAK</span><strong id="metricStreak">0</strong><small>DAYS</small></div>
+      <div class="metric-card"><span>ACHIEVEMENTS</span><strong id="metricAchievements">0</strong><small>UNLOCKED</small></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><div class="chart-title">XP ACTIVITY — LAST 7 DAYS</div><canvas id="xpChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title">QUEST COMPLETION — LAST 7 DAYS</div><canvas id="questChart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="dashboard-view" id="view-weekly">
+    <div class="weekly-layout">
+      <div class="weekly-card">
+        <div class="chart-title">WEEKLY SCORECARD</div>
+        <div id="weeklyTable"></div>
+      </div>
+      <div class="weekly-card">
+        <div class="chart-title">STAT DISTRIBUTION</div>
+        <canvas id="statChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard-view" id="view-achievements">
+    <div class="achievement-summary" id="achievementSummary"></div>
+    <div class="achievement-grid" id="achievementGrid"></div>
+  </section>
+
+  <section class="dashboard-view" id="view-profile">
+    <div class="profile-layout">
+      <div class="profile-card featured-profile">
+        <div class="avatar" id="profileAvatar">P</div>
+        <div class="profile-main">
+          <input id="profileName" class="profile-input profile-name-input" maxlength="24">
+          <input id="profileRole" class="profile-input" maxlength="50" placeholder="Role / class / identity">
+          <textarea id="profileBio" class="profile-input profile-bio" maxlength="240" placeholder="Short profile bio..."></textarea>
+          <input id="profileGoal" class="profile-input" maxlength="100" placeholder="Current primary goal">
+          <button class="add-btn profile-save" id="profileSave">SAVE PROFILE</button>
+        </div>
+      </div>
+      <div class="profile-card">
+        <div class="chart-title">LOCAL PROFILES</div>
+        <form id="newProfileForm" class="profile-create">
+          <input id="newProfileName" class="profile-input" maxlength="24" placeholder="New profile name" required>
+          <button class="add-btn" type="submit">CREATE</button>
+        </form>
+        <div id="profileList"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app">
+  <div class="topbar">
+    <div class="wordmark"><div class="diamond"></div><span>THE SYSTEM</span></div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="settingsBtn" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <div class="panel hunter-card">
+    <div class="rank-badge" id="rankBadge">E</div>
+    <div class="hunter-id">
+      <div class="hunter-name-row">
+        <span class="hunter-name" id="hunterName">Player</span>
+        <span class="hunter-title" id="hunterTitle"></span>
+      </div>
+      <div class="hunter-level"><span id="hunterLevel">Level 1</span> &nbsp;·&nbsp; <span id="rankLabel">E-Rank Hunter</span></div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+        <div class="xp-label" id="xpLabel">0 / 100 XP</div>
+      </div>
+    </div>
+    <div class="statpoint-pill" id="statPointPill" style="display:none;">● POINTS AVAILABLE</div>
+  </div>
+
+  <div id="penaltyBanner" style="display:none;"></div>
+
+  <div class="grid">
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-title">STATUS</div>
+        <div id="statsList"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">TITLE</div>
+        <select class="title-select" id="titleSelect"></select>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">SYSTEM LOG</div>
+        <div id="logList"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="panel section-gap">
+        <div class="panel-title">DAILY QUEST — resets at midnight</div>
+        <div id="dailyList"></div>
+      </div>
+
+      <div class="panel section-gap">
+        <div class="panel-title">SIDE QUESTS</div>
+        <div id="sideList"></div>
+        <div class="add-row">
+          <input type="text" id="sideInput" placeholder="New quest...">
+          <select id="sideRank">
+            <option value="E">E</option><option value="D">D</option><option value="C" selected>C</option>
+            <option value="B">B</option><option value="A">A</option><option value="S">S</option>
+          </select>
+          <button class="add-btn" id="sideAdd">ACCEPT</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">DUNGEONS</div>
+        <div id="dungeonList"></div>
+        <div class="empty-note" id="dungeonEmpty" style="display:none;">No active dungeons.</div>
+        <div class="new-dungeon-form">
+          <div class="add-row">
+            <input type="text" id="dungeonTitle" placeholder="Dungeon name (e.g. Learn Python)">
+            <input type="date" id="dungeonDeadline" style="background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px;font-size:12px;">
+          </div>
+          <div id="objRows"></div>
+          <div class="obj-input-row">
+            <input type="text" id="objInput" placeholder="Add objective, press Enter">
+          </div>
+          <div class="add-row" style="margin-top:10px;">
+            <button class="add-btn" id="dungeonCreate" style="width:100%;">OPEN GATE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js" defer></script>
+<script src="js/features.js" defer></script>
+<script src="js/dashboard.js" defer></script>
+</body>
+</html>
